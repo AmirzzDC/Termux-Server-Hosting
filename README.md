@@ -1,0 +1,43 @@
+# TERMUX HOSTING PLATFORM
+
+``
+- CREATE UNLIMITED SERVERS
+- EACH SERVERS RUN ITS OWN TMUX SESSION
+- CLEAN WEB INTERFACE
+- FULLY FUNCTIONAL
+- MOBILE UI FRIENDLY
+- AUTO CREATE DIRECTORY FOR THE TMUX FILES
+``
+
+# STEPS
+
+```
+pkg update && pkg upgrade -y
+pkg install python tmux git -y
+pip install flask flask_cors
+
+THEN RUN
+
+git clone https://github.com/AmirzzDC/Termux-Server-Hosting.git
+cd Termux-Server-Hosting
+
+THEN RUN
+python main.py
+
+and open the IP 
+
+http://localhost:5001
+```
+
+NOTE!
+
+THIS TERMUX GITHUB ARENT MEANT FOR PUBLIC USE, ITS RECOMMENDED FOR LOCAL USE ONLY. IF YOU ARE LOOKING FOR A PUBLIC USE. PLEASE WAIT FOR UPDATE BETA 2.0 WHICH INCLUDES
+
+AUTHENTICATION
+MORE CLEAN UI 
+
+AND MORE
+
+PLEASE JOIN OUR DISCORD SERVER
+
+https://discord.gg/vpnJPUVup3
