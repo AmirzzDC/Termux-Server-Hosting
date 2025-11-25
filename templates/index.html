@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hosting Dashboard</title>
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #121212;
+    color: #fff;
+}
+.container {
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px;
+}
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #39ff14;
+}
+#createServerBtn {
+    display: block;
+    margin: 0 auto 20px auto;
+    padding: 12px 25px;
+    font-size: 16px;
+    background-color: #39ff14;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    color: #000;
+    font-weight: bold;
+    transition: 0.2s;
+}
+#createServerBtn:hover {
+    background-color: #28c20e;
+}
+.servers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+}
+.server-box {
+    background-color: #1e1e1e;
+    border: 1px solid #39ff14;
+    border-radius: 8px;
+    padding: 20px;
+    min-width: 150px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.server-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0 10px #39ff14;
+}
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 10;
+    left:0; top:0;
+    width:100%; height:100%;
+    background: rgba(0,0,0,0.7);
+}
+.modal-content {
+    background: #1e1e1e;
+    margin: 15% auto;
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 400px;
+    text-align: center;
+    border: 1px solid #39ff14;
+}
+.modal-content input {
+    width: 80%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    border: 1px solid #39ff14;
+    background-color: #121212;
+    color: #fff;
+}
+.modal-content button {
+    padding: 10px 20px;
+    background-color: #39ff14;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.modal-content button:hover {
+    background-color: #28c20e;
+}
+.close {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 25px;
+    cursor: pointer;
+    color: #39ff14;
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>Termux Hosting Platform</h1>
+    <button id="createServerBtn">Create Server</button>
+    <div class="servers" id="servers"></div>
+</div>
+<div id="modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Create New Server</h2>
+        <input type="text" id="serverName" placeholder="Enter server name">
+        <br>
+        <button id="createBtn">Create</button>
+    </div>
+</div>
+<script>
+const serversDiv = document.getElementById('servers');
+const modal = document.getElementById('modal');
+const createServerBtn = document.getElementById('createServerBtn');
+const closeModal = document.querySelector('.close');
+const createBtn = document.getElementById('createBtn');
+
+createServerBtn.onclick = () => modal.style.display = 'block';
+closeModal.onclick = () => modal.style.display = 'none';
+window.onclick = e => { if(e.target==modal) modal.style.display='none'; }
+
+createBtn.onclick = async () => {
+    const name = document.getElementById('serverName').value.trim();
+    if(!name) return alert("Enter a server name");
+    const res = await fetch('/create_server', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({name})
+    });
+    const data = await res.json();
+    if(data.success){
+        loadServers();
+        modal.style.display='none';
+        document.getElementById('serverName').value='';
+    } else {
+        alert(data.error);
+    }
+};
+async function loadServers(){
+    serversDiv.innerHTML = '';
+    const res = await fetch('/servers');
+    const servers = await res.json();
+    servers.forEach(s=>{
+        const box = document.createElement('div');
+        box.className = 'server-box';
+        box.textContent = s;
+        box.onclick = ()=> window.location=`/console.html?server=${s}`;
+        serversDiv.appendChild(box);
+    });
+}
+loadServers();
+</script>
+</body>
+</html>

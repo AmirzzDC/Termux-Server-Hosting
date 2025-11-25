@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Server Console</title>
+<style>
+body {
+    margin:0;
+    font-family: monospace;
+    background:#121212;
+    color:#fff;
+}
+.container {
+    max-width:1200px;
+    margin:auto;
+    padding:20px;
+}
+h1 {
+    text-align:center;
+    color:#39ff14;
+    margin-bottom:20px;
+}
+.buttons {
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:10px;
+}
+button {
+    padding:10px 20px;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+    background:#39ff14;
+    color:#000;
+    font-weight:bold;
+}
+button:hover { background:#28c20e; }
+#console {
+    background:#000;
+    height:300px;
+    overflow-y:auto;
+    padding:10px;
+    border-radius:5px;
+    margin-bottom:10px;
+    white-space:pre-wrap;
+    font-size:14px;
+}
+.command-box {
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+}
+.command-box input {
+    flex:1;
+    padding:10px;
+    border-radius:5px;
+    border:none;
+    font-family: monospace;
+    background:#1e1e1e;
+    color:#fff;
+}
+.files {
+    background:#111;
+    padding:10px;
+    border-radius:5px;
+}
+.file {
+    display:flex;
+    justify-content:space-between;
+    padding:5px;
+    border-bottom:1px solid #222;
+}
+.file button {
+    background:#39ff14;
+    border:none;
+    border-radius:3px;
+    padding:2px 6px;
+    cursor:pointer;
+}
+.file button:hover { background:#28c20e; }
+.upload { margin-top:10px; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1 id="serverTitle">Server Console</h1>
+<div class="buttons">
+    <button id="startBtn">Start</button>
+    <button id="restartBtn">Restart</button>
+    <button id="stopBtn">Stop</button>
+</div>
+
+<div id="console"></div>
+
+<div class="command-box">
+    <input type="text" id="commandInput" placeholder="Enter command (nano disabled)">
+    <button id="sendCommand">Send</button>
+</div>
+<h2>Files</h2>
+<div class="files" id="fileList"></div>
+<div class="upload">
+    <input type="file" id="fileUpload">
+    <button id="uploadBtn">Upload</button>
+</div>
+</div>
+<script>
+const urlParams = new URLSearchParams(window.location.search);
+const serverName = urlParams.get('server');
+document.getElementById('serverTitle').textContent = serverName;
+
+const consoleDiv = document.getElementById('console');
+const commandInput = document.getElementById('commandInput');
+
+async function sendCommand(cmd) {
+    if(cmd.includes("nano")) return alert("nano is disabled");
+    await fetch(`/console/${serverName}`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({command:cmd})
+    });
+    commandInput.value = '';
+}
+
+document.getElementById('sendCommand').onclick = () => {
+    const cmd = commandInput.value.trim();
+    if(cmd) sendCommand(cmd);
+};
+commandInput.addEventListener("keypress", function(e){
+    if(e.key==='Enter') document.getElementById('sendCommand').click();
+});
+document.getElementById('startBtn').onclick = () => fetch(`/start/${serverName}`, {method:'POST'});
+document.getElementById('restartBtn').onclick = () => fetch(`/restart/${serverName}`, {method:'POST'});
+document.getElementById('stopBtn').onclick = () => fetch(`/stop/${serverName}`, {method:'POST'});
+let isAtBottom = true;
+consoleDiv.addEventListener('scroll', () => {
+    isAtBottom = consoleDiv.scrollHeight - consoleDiv.scrollTop === consoleDiv.clientHeight;
+});
+
+async function updateConsole(){
+    const res = await fetch(`/console/${serverName}/output`);
+    const data = await res.json();
+    consoleDiv.textContent = data.output;
+    if(isAtBottom) consoleDiv.scrollTop = consoleDiv.scrollHeight;
+}
+setInterval(updateConsole, 1000);
+
+async function loadFiles(){
+    const res = await fetch(`/files/${serverName}`);
+    const files = await res.json();
+    const fileList = document.getElementById('fileList');
+    fileList.innerHTML = '';
+    files.forEach(f=>{
+        const div = document.createElement('div');
+        div.className = 'file';
+        div.innerHTML = `<span>${f}</span>
+        <div>
+            <button onclick="editFile('${f}')">Edit</button>
+            <button onclick="deleteFile('${f}')">Delete</button>
+        </div>`;
+        fileList.appendChild(div);
+    });
+}
+loadFiles();
+
+async function editFile(filename){
+    const res = await fetch(`/files/${serverName}/${filename}`);
+    const content = await res.text();
+    const newContent = prompt("Edit file: " + filename, content);
+    if(newContent !== null){
+        await fetch(`/files/${serverName}/${filename}`,{
+            method:'PUT',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({content:newContent})
+        });
+        loadFiles();
+    }
+}
+
+async function deleteFile(filename){
+    if(!confirm(`Delete ${filename}?`)) return;
+    await fetch(`/files/${serverName}/${filename}`, {method:'DELETE'});
+    loadFiles();
+}
+document.getElementById('uploadBtn').onclick = async () => {
+    const file = document.getElementById('fileUpload').files[0];
+    if(!file) return alert("Select a file");
+    const form = new FormData();
+    form.append('file', file);
+    await fetch(`/files/${serverName}/upload`, {method:'POST', body: form});
+    loadFiles();
+};
+</script>
+</body>
+</html>
